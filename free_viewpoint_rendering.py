@@ -43,6 +43,7 @@ def _setup_nonrigid_nerf_network(results_folder, checkpoint="latest"):
         if path is not None and checkpoint is not None:
             raise RuntimeError("trying to load weights from two sources")
         if checkpoint is not None:
+            print("Reload from", checkpoint)
             path = os.path.join(results_folder, "logs", checkpoint + ".tar")
         checkpoint_dict = torch.load(path)
         start = checkpoint_dict["global_step"]
@@ -95,7 +96,7 @@ def _setup_nonrigid_nerf_network(results_folder, checkpoint="latest"):
             bd_factor=bd_factor,
             spherify=spherify,
         )
-        extras = _get_multi_view_helper_mappings(images.shape[0], datatdir)
+        extras = _get_multi_view_helper_mappings(images.shape[0], datadir)
 
         # poses
         hwf = poses[0, :3, -1]
@@ -419,7 +420,7 @@ def free_viewpoint_rendering(args):
 
     # memory vs. speed and quality
     frames_at_a_time = 10 # set to 1 to reduce memory requirements
-    only_rgb = False # set to True to reduce memory requirements. Needs to be False for some scene editing to work.
+    only_rgb = True # set to True to reduce memory requirements. Needs to be False for some scene editing to work.
 
     # determine output name
     if args.camera_path == "spiral":
@@ -463,7 +464,7 @@ def free_viewpoint_rendering(args):
         convert_disparity_to_phong,
         store_ray_bending_mesh_visualization,
         to8b,
-    ) = _setup_nonrigid_nerf_network(args.input)
+    ) = _setup_nonrigid_nerf_network(args.input, checkpoint=args.checkpoint)
     print("sucessfully loaded nerf network", flush=True)
 
     # load dataset
@@ -897,6 +898,13 @@ if __name__ == "__main__":
         "--camera_path",
         type=str,
         help='"input_reconstruction", "fixed". camera path to use for re-rendering. optionally, implement "spiral", see README.md',
+    )
+    # optional checkpoing argument
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default="latest",
+        help="checkpoint filename"
     )
     # optional camera path arguments
     parser.add_argument(
